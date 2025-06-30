@@ -1,3 +1,4 @@
+import 'package:e_commerce/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:e_commerce/core/services/cart_provider.dart' as cart_service;
@@ -8,6 +9,7 @@ import 'package:e_commerce/data/models/order.dart' as app_order;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:e_commerce/core/services/order_provider.dart' as order_provider;
+import 'package:url_launcher/url_launcher.dart';
 
 enum PaymentMethod { cash, momo }
 
@@ -451,7 +453,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       child: ElevatedButton(
                         onPressed: _isProcessingOrder
                             ? null
-                            : () {
+                            : () async {
                                 if (!showPaymentOptions) {
                                   setState(() {
                                     showPaymentOptions = true;
@@ -628,7 +630,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        _processOrder();
+                        _processOrder(isPhone: true);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppConstants.primaryColor,
@@ -656,7 +658,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Future<void> _processOrder() async {
+  Future<void> _processOrder({bool isPhone = false}) async {
     setState(() {
       _isProcessingOrder = true;
     });
@@ -722,6 +724,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       await Provider.of<order_provider.OrderProvider>(context, listen: false)
           .placeOrder(order);
       // Show success modal based on payment method
+      final email = authProvider.firebaseUser?.email;
+      final dInfo = {
+        'orderDetails': {
+          'customerName': email,
+          'items': order.items
+              .map((item) => {
+                    'name': item.product.name,
+                    'quantity': item.quantity,
+                    'price': item.product.price,
+                  })
+              .toList(),
+          'orderDate': order.createdAt?.toIso8601String(),
+          'totalAmount': order.totalAmount,
+        },
+        'email': email,
+      };
+      await sendConfirmEmail(dInfo);
+      if (isPhone) {
+        final url = Uri(
+          scheme: 'tel',
+          path: '*182*1*1*0783536378*${order.totalAmount.toStringAsFixed(2)}#',
+        );
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url);
+        }
+      }
       _showSuccessModal(_selectedPayment);
     } catch (e) {
       print('Error processing order: $e');

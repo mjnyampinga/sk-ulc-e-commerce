@@ -372,7 +372,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             InkWell(
                               onTap: () async {
                                 final url = Uri.parse(
-                                    'https://wa.me/+250781167275'); // Replace with your WhatsApp number
+                                    'https://wa.me/+250783536378'); // Replace with your WhatsApp number
                                 if (await canLaunchUrl(url)) {
                                   await launchUrl(url,
                                       mode: LaunchMode.externalApplication);
