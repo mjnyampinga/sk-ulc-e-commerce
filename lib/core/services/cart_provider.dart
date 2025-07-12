@@ -15,7 +15,9 @@ class CartProvider with ChangeNotifier {
   }
 
   int get itemCount {
-    return _items.fold(0, (sum, item) => sum + item.quantity);
+    final count = _items.fold(0, (sum, item) => sum + item.quantity);
+    print('CartProvider: itemCount = $count, items = ${_items.length}');
+    return count;
   }
 
   int getQuantity(String productId) {
@@ -35,14 +37,41 @@ class CartProvider with ChangeNotifier {
     return item.quantity;
   }
 
+  /// Check if a product can be added to cart (has available stock)
+  bool canAddToCart(Product product) {
+    final currentQuantity = getQuantity(product.id);
+    final availableStock = product.quantity ?? 0;
+    return currentQuantity < availableStock;
+  }
+
+  /// Get available stock for a product (total stock minus current cart quantity)
+  int getAvailableStock(Product product) {
+    final currentQuantity = getQuantity(product.id);
+    final totalStock = product.quantity ?? 0;
+    return totalStock - currentQuantity;
+  }
+
   Future<void> loadCart() async {
     _items = await _prefsService.loadCart();
     notifyListeners();
   }
 
-  Future<void> addToCart(Product product, [int quantity = 1]) async {
+  Future<bool> addToCart(Product product, [int quantity = 1]) async {
+    print('CartProvider: Adding ${product.name} to cart, quantity: $quantity');
+
     final existingIndex =
         _items.indexWhere((item) => item.product.id == product.id);
+
+    // Check if we can add the requested quantity
+    final currentQuantity =
+        existingIndex >= 0 ? _items[existingIndex].quantity : 0;
+    final availableStock = product.quantity ?? 0;
+
+    if (currentQuantity + quantity > availableStock) {
+      print(
+          'CartProvider: Cannot add more than available stock ($availableStock)');
+      return false; // Cannot add more than available stock
+    }
 
     if (existingIndex >= 0) {
       _items[existingIndex] = CartItem(
@@ -50,13 +79,19 @@ class CartProvider with ChangeNotifier {
         product: product,
         quantity: _items[existingIndex].quantity + quantity,
       );
+      print(
+          'CartProvider: Updated existing item, new quantity: ${_items[existingIndex].quantity}');
     } else {
       _items.add(CartItem(
           productId: product.id, product: product, quantity: quantity));
+      print('CartProvider: Added new item to cart');
     }
 
     await _prefsService.saveCart(_items);
     notifyListeners();
+    print(
+        'CartProvider: Cart updated, total items: ${_items.length}, total quantity: ${itemCount}');
+    return true;
   }
 
   Future<void> removeFromCart(String productId) async {
@@ -66,7 +101,7 @@ class CartProvider with ChangeNotifier {
   }
 
   /// Updates the quantity of a cart item. If quantity < 1, removes the item from the cart.
-  /// Returns true if updated or removed, false if not found.
+  /// Returns true if updated or removed, false if not found or exceeds stock.
   Future<bool> updateQuantity(String productId, int quantity) async {
     final index = _items.indexWhere((item) => item.product.id == productId);
     if (index >= 0) {
@@ -74,6 +109,12 @@ class CartProvider with ChangeNotifier {
         // Remove item from cart if quantity < 1
         _items.removeAt(index);
       } else {
+        // Check if new quantity exceeds available stock
+        final availableStock = _items[index].product.quantity ?? 0;
+        if (quantity > availableStock) {
+          return false; // Cannot exceed available stock
+        }
+
         _items[index] = CartItem(
           productId: productId,
           product: _items[index].product,

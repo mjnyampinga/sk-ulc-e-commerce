@@ -24,7 +24,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   String searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  bool _isOnline = true;
   late final Connectivity _connectivity;
   late final StreamSubscription _connectivitySubscription;
 
@@ -34,18 +33,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     _connectivity = Connectivity();
     _connectivity.checkConnectivity().then((result) {
       if (mounted) {
-        setState(() {
-          _isOnline = result != ConnectivityResult.none;
-        });
+        setState(() {});
       }
     });
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen((results) {
       if (mounted) {
-        setState(() {
-          _isOnline =
-              results.any((result) => result != ConnectivityResult.none);
-        });
+        setState(() {});
       }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -128,19 +122,20 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade200),
+          if (Navigator.canPop(context))
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new,
+                    color: Colors.grey, size: 20),
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
-                  color: Colors.grey, size: 20),
             ),
-          ),
           const SizedBox(width: 12),
           Expanded(
             child: Container(
@@ -316,7 +311,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             crossAxisCount: 2,
             mainAxisSpacing: 16,
             crossAxisSpacing: 16,
-            childAspectRatio: 0.75,
+            childAspectRatio: 0.72,
           ),
           itemCount: products.length,
           itemBuilder: (context, index) {
@@ -407,15 +402,25 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     right: 8,
                     child: quantity == 0
                         ? GestureDetector(
-                            onTap: () {
-                              cart.addToCart(product);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content:
-                                      Text('${product.name} added to cart'),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
+                            onTap: () async {
+                              final success = await cart.addToCart(product);
+                              if (success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content:
+                                        Text('${product.name} added to cart'),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        'Cannot add more than ${product.quantity ?? 0} items'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             },
                             child: Container(
                               width: 36,
@@ -459,9 +464,19 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                   ),
                                 ),
                                 GestureDetector(
-                                  onTap: () {
-                                    cart.updateQuantity(
+                                  onTap: () async {
+                                    final success = await cart.updateQuantity(
                                         product.id, quantity + 1);
+                                    if (!success) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              'Cannot add more than ${product.quantity ?? 0} items'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
                                   },
                                   child: const Icon(Icons.add,
                                       color: Colors.white, size: 22),
@@ -544,6 +559,17 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                           ],
                         );
                       },
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Stock: ${product.quantity ?? 0}',
+                      style: TextStyle(
+                        color: (product.quantity ?? 0) > 0
+                            ? Colors.green
+                            : Colors.red,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),

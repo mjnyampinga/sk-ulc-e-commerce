@@ -26,6 +26,12 @@ class Product extends HiveObject {
   final String? category;
   @HiveField(10)
   final String? userId;
+  @HiveField(11)
+  final bool? isApproved;
+  @HiveField(12)
+  final String? approvedBy;
+  @HiveField(13)
+  final DateTime? approvedAt;
 
   String get mainImageUrl => imageUrls.isNotEmpty ? imageUrls.first : '';
 
@@ -41,6 +47,9 @@ class Product extends HiveObject {
     this.quantity = 1,
     this.category,
     this.userId,
+    this.isApproved = false,
+    this.approvedBy,
+    this.approvedAt,
   });
 
   Map<String, dynamic> toJson() {
@@ -56,6 +65,9 @@ class Product extends HiveObject {
       'quantity': quantity,
       'category': category,
       'userId': userId,
+      'isApproved': isApproved,
+      'approvedBy': approvedBy,
+      'approvedAt': approvedAt?.toIso8601String(),
     };
   }
 
@@ -71,6 +83,9 @@ class Product extends HiveObject {
       'quantity': quantity,
       'category': category,
       'userId': userId,
+      'isApproved': isApproved,
+      'approvedBy': approvedBy,
+      'approvedAt': approvedAt?.toIso8601String(),
     };
   }
 
@@ -89,6 +104,11 @@ class Product extends HiveObject {
       quantity: json['quantity'] as int? ?? 1,
       category: json['category']?.toString(),
       userId: json['userId']?.toString(),
+      isApproved: json['isApproved'] as bool? ?? false,
+      approvedBy: json['approvedBy']?.toString(),
+      approvedAt: json['approvedAt'] != null
+          ? DateTime.parse(json['approvedAt'])
+          : null,
     );
   }
 
@@ -119,6 +139,9 @@ class Product extends HiveObject {
       quantity: data['quantity'] as int? ?? 1,
       category: data['category'] as String?,
       userId: data['user_id'] as String?,
+      isApproved: data['isApproved'] as bool? ?? false,
+      approvedBy: data['approvedBy'] as String?,
+      approvedAt: null,
     );
   }
 }

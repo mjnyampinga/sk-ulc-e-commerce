@@ -40,8 +40,11 @@ class ProductService {
         // Convert category to lowercase for case-insensitive matching
         String lowercaseCategory = category.toLowerCase().trim();
 
-        // Get all products and filter locally for case-insensitive category matching
-        QuerySnapshot snapshot = await _firestore.collection('products').get();
+        // Get all approved products and filter locally for case-insensitive category matching
+        QuerySnapshot snapshot = await _firestore
+            .collection('products')
+            .where('isApproved', isEqualTo: true)
+            .get();
         List<Product> allProducts = snapshot.docs.map((doc) {
           Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
           return Product.fromMap(data, doc.id);
@@ -108,6 +111,12 @@ class ProductService {
       Map<String, dynamic> productData = product.toMap();
       productData['user_id'] = userId;
 
+      // Set approval status based on user type
+      // For now, all products start as pending approval
+      productData['isApproved'] = false;
+      productData['approvedBy'] = null;
+      productData['approvedAt'] = null;
+
       DocumentReference docRef =
           await _firestore.collection('products').add(productData);
       return docRef.id;
@@ -150,8 +159,11 @@ class ProductService {
         return [];
       }
 
-      // First try to get all products and filter locally for better case-insensitive search
-      QuerySnapshot snapshot = await _firestore.collection('products').get();
+      // First try to get all approved products and filter locally for better case-insensitive search
+      QuerySnapshot snapshot = await _firestore
+          .collection('products')
+          .where('isApproved', isEqualTo: true)
+          .get();
       List<Product> allProducts = snapshot.docs.map((doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         return Product.fromMap(data, doc.id);
@@ -181,6 +193,7 @@ class ProductService {
       QuerySnapshot snapshot = await _firestore
           .collection('products')
           .where('hasDiscount', isEqualTo: true)
+          .where('isApproved', isEqualTo: true)
           .limit(10)
           .get();
       return snapshot.docs.map((doc) {
@@ -197,7 +210,7 @@ class ProductService {
   static Stream<List<Product>> streamProducts() {
     return _firestore.collection('products').snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        Map<String, dynamic> data = doc.data();
         return Product.fromMap(data, doc.id);
       }).toList();
     });
@@ -210,7 +223,7 @@ class ProductService {
 
     return _firestore.collection('products').snapshots().map((snapshot) {
       List<Product> allProducts = snapshot.docs.map((doc) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        Map<String, dynamic> data = doc.data();
         return Product.fromMap(data, doc.id);
       }).toList();
 
@@ -324,6 +337,98 @@ class ProductService {
     } catch (e) {
       print('Error getting supplier products: $e');
       return [];
+    }
+  }
+
+  // Get approved products only (for customers)
+  static Future<List<Product>> getApprovedProducts() async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('products')
+          .where('isApproved', isEqualTo: true)
+          .get();
+      print('Approved products: ${snapshot.docs.length}');
+      return snapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        return Product.fromMap(data, doc.id);
+      }).toList();
+    } catch (e) {
+      print('Error getting approved products: $e');
+      return [];
+    }
+  }
+
+  // Get pending approval products (for admins)
+  static Future<List<Product>> getPendingApprovalProducts() async {
+    try {
+      // Get all products and filter for those that are not approved
+      QuerySnapshot snapshot = await _firestore.collection('products').get();
+
+      List<Product> allProducts = snapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        return Product.fromMap(data, doc.id);
+      }).toList();
+
+      // Filter for products that are not approved (isApproved is false or null)
+      List<Product> pendingProducts = allProducts.where((product) {
+        return product.isApproved == false;
+      }).toList();
+
+      return pendingProducts;
+    } catch (e) {
+      print('Error getting pending approval products: $e');
+      return [];
+    }
+  }
+
+  // Approve a product (for admins)
+  static Future<bool> approveProduct(
+      String productId, String approvedBy) async {
+    try {
+      await _firestore.collection('products').doc(productId).update({
+        'isApproved': true,
+        'approvedBy': approvedBy,
+        'approvedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      print('Error approving product: $e');
+      return false;
+    }
+  }
+
+  // Reject a product (for admins)
+  static Future<bool> rejectProduct(
+      String productId, String rejectedBy, String reason) async {
+    try {
+      await _firestore.collection('products').doc(productId).update({
+        'isApproved': false,
+        'rejectedBy': rejectedBy,
+        'rejectedAt': FieldValue.serverTimestamp(),
+        'rejectionReason': reason,
+      });
+      return true;
+    } catch (e) {
+      print('Error rejecting product: $e');
+      return false;
+    }
+  }
+
+  // Move approved product back to pending (for admins)
+  static Future<bool> moveToPending(String productId) async {
+    try {
+      await _firestore.collection('products').doc(productId).update({
+        'isApproved': false,
+        'approvedBy': null,
+        'approvedAt': null,
+        'rejectedBy': null,
+        'rejectedAt': null,
+        'rejectionReason': null,
+      });
+      return true;
+    } catch (e) {
+      print('Error moving product to pending: $e');
+      return false;
     }
   }
 }

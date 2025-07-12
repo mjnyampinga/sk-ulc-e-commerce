@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:e_commerce/core/services/auth_provider.dart';
+import 'package:e_commerce/core/services/auth_provider.dart' as app_auth;
+import 'package:e_commerce/core/services/firebase_service.dart';
 import '../../../core/utils/constants.dart';
 import '../../main_scaffold.dart';
 import 'register_screen.dart';
+import 'phone_verification_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -16,8 +19,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController phoneController =
+      TextEditingController(text: '+250');
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isPhoneAuth = false;
 
   @override
   Widget build(BuildContext context) {
@@ -76,22 +82,98 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 80),
 
-                // Email TextField
+                // Authentication Method Toggle
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F8F9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _isPhoneAuth = false;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: !_isPhoneAuth
+                                  ? AppConstants.primaryColor
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Email',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.urbanist(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: !_isPhoneAuth
+                                    ? Colors.white
+                                    : const Color(0xFF8391A1),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _isPhoneAuth = true;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _isPhoneAuth
+                                  ? AppConstants.primaryColor
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Phone',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.urbanist(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: _isPhoneAuth
+                                    ? Colors.white
+                                    : const Color(0xFF8391A1),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Email/Phone TextField
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFFF7F8F9),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: TextField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
+                    controller:
+                        _isPhoneAuth ? phoneController : emailController,
+                    keyboardType: _isPhoneAuth
+                        ? TextInputType.phone
+                        : TextInputType.emailAddress,
                     style: GoogleFonts.urbanist(
                       fontSize: 15,
                       color: const Color(0xFF1E232C),
                       fontWeight: FontWeight.w400,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Enter your email',
+                      hintText: _isPhoneAuth
+                          ? 'Enter your phone number'
+                          : 'Enter your email',
                       hintStyle: GoogleFonts.urbanist(
                         color: const Color(0xFF8391A1),
                         fontSize: 15,
@@ -105,51 +187,52 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 15),
 
-                // Password TextField
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7F8F9),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextField(
-                    controller: passwordController,
-                    obscureText: _obscurePassword,
-                    style: GoogleFonts.urbanist(
-                      fontSize: 15,
-                      color: const Color(0xFF1E232C),
-                      fontWeight: FontWeight.w400,
+                // Password TextField (only for email auth)
+                if (!_isPhoneAuth)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F8F9),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    decoration: InputDecoration(
-                      hintText: 'Enter your password',
-                      hintStyle: GoogleFonts.urbanist(
-                        color: const Color(0xFF8391A1),
+                    child: TextField(
+                      controller: passwordController,
+                      obscureText: _obscurePassword,
+                      style: GoogleFonts.urbanist(
                         fontSize: 15,
+                        color: const Color(0xFF1E232C),
                         fontWeight: FontWeight.w400,
                       ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 16),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
+                      decoration: InputDecoration(
+                        hintText: 'Enter your password',
+                        hintStyle: GoogleFonts.urbanist(
                           color: const Color(0xFF8391A1),
-                          size: 20,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 16),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: const Color(0xFF8391A1),
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
                       ),
                     ),
                   ),
-                ),
                 const SizedBox(height: 30),
 
                 // Login Button
-                Consumer<AuthProvider>(
+                Consumer<app_auth.AuthProvider>(
                   builder: (context, authProvider, child) {
                     return SizedBox(
                       width: double.infinity,
@@ -175,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               )
                             : Text(
-                                'Login',
+                                _isPhoneAuth ? 'Send Code' : 'Login',
                                 style: GoogleFonts.urbanist(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -189,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 30),
 
                 // Error Message
-                Consumer<AuthProvider>(
+                Consumer<app_auth.AuthProvider>(
                   builder: (context, authProvider, child) {
                     if (authProvider.error != null) {
                       return Container(
@@ -221,6 +304,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 Center(
                   child: GestureDetector(
                     onTap: () {
+                      Provider.of<app_auth.AuthProvider>(context, listen: false)
+                          .clearError();
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -258,6 +343,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    if (_isPhoneAuth) {
+      await _handlePhoneLogin();
+    } else {
+      await _handleEmailLogin();
+    }
+  }
+
+  Future<void> _handleEmailLogin() async {
     // Validate inputs
     if (emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -284,7 +377,8 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final authProvider =
+          Provider.of<app_auth.AuthProvider>(context, listen: false);
 
       final success = await authProvider.signIn(
         email: emailController.text.trim(),
@@ -303,6 +397,76 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Login failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handlePhoneLogin() async {
+    // Validate phone number
+    if (phoneController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your phone number'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Send verification code
+      await FirebaseService.verifyPhoneNumber(
+        phoneNumber: phoneController.text.trim(),
+        onCodeSent: (String verificationId) {
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PhoneVerificationScreen(
+                  phoneNumber: phoneController.text.trim(),
+                  verificationId: verificationId,
+                  isSignUp: false,
+                ),
+              ),
+            );
+          }
+        },
+        onCodeAutoRetrievalTimeout: (String verificationId) {
+          print('Auto retrieval timeout');
+        },
+        onVerificationCompleted: (PhoneAuthCredential credential) {
+          // Auto-verification completed
+          print('Auto verification completed');
+        },
+        onVerificationFailed: (FirebaseAuthException e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to send code: ${e.message}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send code: $e'),
             backgroundColor: Colors.red,
           ),
         );

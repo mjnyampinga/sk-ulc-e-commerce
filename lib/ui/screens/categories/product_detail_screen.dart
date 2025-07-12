@@ -202,6 +202,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
+                          // Stock Information
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.inventory_2,
+                                size: 16,
+                                color: (widget.product.quantity ?? 0) > 0
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Stock: ${widget.product.quantity ?? 0}',
+                                style: TextStyle(
+                                  color: (widget.product.quantity ?? 0) > 0
+                                      ? Colors.green
+                                      : Colors.red,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
                           const Text(
                             'Rose face lotion',
                             style: TextStyle(
@@ -300,17 +324,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 quantity == 0
                                     ? Center(
                                         child: GestureDetector(
-                                          onTap: () {
-                                            cart.addToCart(widget.product);
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                    '${widget.product.name} added to cart'),
-                                                duration:
-                                                    const Duration(seconds: 1),
-                                              ),
-                                            );
+                                          onTap: () async {
+                                            final success = await cart
+                                                .addToCart(widget.product);
+                                            if (success) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                      '${widget.product.name} added to cart'),
+                                                  duration: const Duration(
+                                                      seconds: 1),
+                                                ),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                      'Cannot add more than ${widget.product.quantity ?? 0} items'),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
                                           },
                                           child: Container(
                                             width: 48,
@@ -373,14 +409,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                               ),
                                             ),
                                             GestureDetector(
-                                              onTap: () {
-                                                if (quantity <
-                                                    (widget.product.quantity ??
-                                                        1)) {
-                                                  cart.updateQuantity(
-                                                      widget.product.id,
-                                                      quantity + 1);
-                                                } else {
+                                              onTap: () async {
+                                                final success =
+                                                    await cart.updateQuantity(
+                                                        widget.product.id,
+                                                        quantity + 1);
+                                                if (!success) {
                                                   ScaffoldMessenger.of(context)
                                                       .showSnackBar(
                                                     SnackBar(
@@ -419,7 +453,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             type: BottomNavigationBarType.fixed,
             currentIndex: navigationProvider.currentIndex,
             onTap: (index) {
-              navigationProvider.setIndex(index);
+              navigationProvider.setIndex(index, context);
               // Navigate back to main scaffold
               Navigator.of(context).popUntil((route) => route.isFirst);
             },

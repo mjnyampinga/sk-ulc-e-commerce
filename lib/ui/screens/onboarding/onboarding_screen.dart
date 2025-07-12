@@ -2,7 +2,6 @@ import 'package:e_commerce/core/utils/constants.dart';
 import 'package:e_commerce/ui/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../auth/phone_entry_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -88,7 +87,7 @@ class OnboardingScreen extends StatelessWidget {
                       elevation: 0,
                     ),
                     child: Text(
-                      'Shop now',
+                      'Get Started',
                       style: GoogleFonts.urbanist(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

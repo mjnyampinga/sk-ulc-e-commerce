@@ -51,6 +51,71 @@ class FirebaseService {
     }
   }
 
+  // Phone authentication methods
+  static Future<void> verifyPhoneNumber({
+    required String phoneNumber,
+    required Function(String) onCodeSent,
+    required Function(String) onCodeAutoRetrievalTimeout,
+    required Function(PhoneAuthCredential) onVerificationCompleted,
+    required Function(FirebaseAuthException) onVerificationFailed,
+  }) async {
+    await _auth.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: onVerificationCompleted,
+      verificationFailed: onVerificationFailed,
+      codeSent: (String verificationId, int? resendToken) {
+        onCodeSent(verificationId);
+      },
+      codeAutoRetrievalTimeout: onCodeAutoRetrievalTimeout,
+    );
+  }
+
+  static Future<UserCredential?> signInWithPhoneCredential(
+      PhoneAuthCredential credential) async {
+    try {
+      return await _auth.signInWithCredential(credential);
+    } catch (e) {
+      print('Error signing in with phone credential: $e');
+      return null;
+    }
+  }
+
+  static Future<UserCredential?> signUpWithPhone({
+    required String phoneNumber,
+    required String username,
+    required String userType,
+  }) async {
+    try {
+      // Create a user with a temporary email since Firebase Auth requires email/password
+      // The phone number will be stored in Firestore for future reference
+      String tempEmail =
+          'temp_${DateTime.now().millisecondsSinceEpoch}@temp.com';
+      String tempPassword = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: tempEmail,
+        password: tempPassword,
+      );
+
+      // Create user document in Firestore with phone number
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'uid': userCredential.user!.uid,
+        'phone': phoneNumber,
+        'username': username,
+        'userType': userType,
+        'createdAt': FieldValue.serverTimestamp(),
+        'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
+      });
+
+      return userCredential;
+    } catch (e) {
+      print('Error signing up with phone: $e');
+      return null;
+    }
+  }
+
   static Future<UserCredential?> signInWithEmailAndPassword({
     required String email,
     required String password,
@@ -457,6 +522,24 @@ class FirebaseService {
     }
   }
 
+  static Future<List<app_order.Order>> getOrdersForCustomer(
+      String customerId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('orders')
+          .where('userId', isEqualTo: customerId)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => app_order.Order.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      print('Error getting customer orders: $e');
+      return [];
+    }
+  }
+
   // User profile methods
   static Future<app_user.User?> getUserProfile(String userId) async {
     try {
@@ -578,11 +661,18 @@ class FirebaseService {
     }
   }
 
-  static Future<void> queueOrCreateOrder(app_order.Order order) async {
+  static Future<bool> queueOrCreateOrder(app_order.Order order) async {
+    // Validate stock before creating order
+    bool stockValid = await validateOrderStock(order);
+    if (!stockValid) {
+      return false;
+    }
+
     var connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult != ConnectivityResult.none) {
       // Online: create order immediately
       await createOrder(order);
+      return true;
     } else {
       // Offline: queue the order
       final box = await Hive.openBox<WriteAction>('write_queue');
@@ -592,6 +682,33 @@ class FirebaseService {
         data: order.toMap(),
       );
       await box.add(action);
+      return true;
+    }
+  }
+
+  static Future<bool> validateOrderStock(app_order.Order order) async {
+    try {
+      for (final item in order.items) {
+        // Get current product from Firestore
+        DocumentSnapshot productDoc =
+            await _firestore.collection('products').doc(item.productId).get();
+
+        if (!productDoc.exists) {
+          return false; // Product doesn't exist
+        }
+
+        Map<String, dynamic> productData =
+            productDoc.data() as Map<String, dynamic>;
+        int availableStock = productData['quantity'] as int? ?? 0;
+
+        if (item.quantity > availableStock) {
+          return false; // Not enough stock
+        }
+      }
+      return true;
+    } catch (e) {
+      print('Error validating stock: $e');
+      return false;
     }
   }
 
@@ -638,8 +755,7 @@ class FirebaseService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => app_order.Order.fromMap(
-                doc.data() as Map<String, dynamic>, doc.id))
+            .map((doc) => app_order.Order.fromMap(doc.data(), doc.id))
             .toList());
   }
 
@@ -651,8 +767,7 @@ class FirebaseService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => AppNotification.fromMap(
-                doc.data() as Map<String, dynamic>, doc.id))
+            .map((doc) => AppNotification.fromMap(doc.data(), doc.id))
             .toList());
   }
 }

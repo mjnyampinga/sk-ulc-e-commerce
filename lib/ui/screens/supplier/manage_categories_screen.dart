@@ -16,7 +16,6 @@ class ManageCategoriesScreen extends StatefulWidget {
 }
 
 class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _iconController = TextEditingController();
   String? _editingCategoryId;
@@ -93,7 +92,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                         v == null || v.isEmpty ? 'Enter name' : null,
                   ),
                   const SizedBox(height: 16),
-                  Text('Select Icon',
+                  const Text('Select Icon',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -244,7 +243,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    Provider.of<AuthProvider>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Categories'),

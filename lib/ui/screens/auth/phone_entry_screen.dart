@@ -1,7 +1,6 @@
 import 'package:e_commerce/core/utils/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'login_screen.dart';
 
 class PhoneEntryScreen extends StatefulWidget {
   const PhoneEntryScreen({Key? key}) : super(key: key);

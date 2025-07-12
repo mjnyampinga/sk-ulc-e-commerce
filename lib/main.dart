@@ -17,6 +17,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'package:e_commerce/core/services/notification_provider.dart';
 import 'package:e_commerce/core/services/order_provider.dart';
+import 'package:e_commerce/core/services/language_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'data/models/product.dart';
 import 'data/models/cart_item.dart';
@@ -27,6 +28,8 @@ import 'data/models/notification.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'data/models/write_action.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:e_commerce/l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,6 +77,7 @@ void main() async {
   final notificationProvider = NotificationProvider();
   final orderProvider = OrderProvider();
   final navigationProvider = NavigationProvider();
+  final languageProvider = LanguageProvider();
 
   // Initialize providers that depend on Firebase
   if (firebaseInitialized) {
@@ -109,6 +113,7 @@ void main() async {
     notificationProvider: notificationProvider,
     orderProvider: orderProvider,
     navigationProvider: navigationProvider,
+    languageProvider: languageProvider,
   ));
 
   // Listen for connectivity changes and process write queue when online
@@ -126,6 +131,7 @@ class MyApp extends StatelessWidget {
   final NotificationProvider notificationProvider;
   final OrderProvider orderProvider;
   final NavigationProvider navigationProvider;
+  final LanguageProvider languageProvider;
 
   const MyApp({
     Key? key,
@@ -135,6 +141,7 @@ class MyApp extends StatelessWidget {
     required this.notificationProvider,
     required this.orderProvider,
     required this.navigationProvider,
+    required this.languageProvider,
   }) : super(key: key);
 
   @override
@@ -147,17 +154,34 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: notificationProvider),
         ChangeNotifierProvider.value(value: orderProvider),
         ChangeNotifierProvider.value(value: navigationProvider),
+        ChangeNotifierProvider.value(value: languageProvider),
       ],
-      child: MaterialApp(
-        title: 'E-Commerce App',
-        theme: AppTheme.lightTheme,
-        debugShowCheckedModeBanner: false,
-        home: const AuthWrapper(),
-        routes: {
-          '/checkout': (context) => const CheckoutScreen(),
-          '/home': (context) => const HomeScreen(),
-          '/login': (context) => const LoginScreen(),
-          '/onboarding': (context) => const OnboardingScreen(),
+      child: Consumer<LanguageProvider>(
+        builder: (context, languageProvider, child) {
+          final l10n = AppLocalizations.of(context);
+          return MaterialApp(
+            title: l10n?.appTitle ?? 'E-Commerce App',
+            theme: AppTheme.lightTheme,
+            debugShowCheckedModeBanner: false,
+            home: const AuthWrapper(),
+            routes: {
+              '/checkout': (context) => const CheckoutScreen(),
+              '/home': (context) => const HomeScreen(),
+              '/login': (context) => const LoginScreen(),
+              '/onboarding': (context) => const OnboardingScreen(),
+            },
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en'),
+              Locale('fr'),
+            ],
+            locale: languageProvider.currentLocale,
+          );
         },
       ),
     );

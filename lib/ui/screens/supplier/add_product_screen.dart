@@ -477,14 +477,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
       List<String> imageUrls = List.from(_networkImageUrls);
 
       for (var imageFile in _imageFiles) {
-        final Uint8List imageBytes = await imageFile.readAsBytes();
-        final imageName =
-            'product_${DateTime.now().millisecondsSinceEpoch}_${_imageFiles.indexOf(imageFile)}.jpg';
-        final imageUrl = await FirebaseService.uploadImage(
-            'product_images/$imageName', imageBytes);
-        if (imageUrl != null) {
-          imageUrls.add(imageUrl);
-        }
+        // final Uint8List imageBytes = await imageFile.readAsBytes();
+        // final imageName =
+        //     'product_${DateTime.now().millisecondsSinceEpoch}_${_imageFiles.indexOf(imageFile)}.jpg';
+        // final imageUrl = await FirebaseService.uploadImage(
+        //     'product_images/$imageName', imageBytes);
+        // print('imageUrl: $imageUrl');
+        // if (imageUrl != null) {
+        //   imageUrls.add(imageUrl);
+        // }
+        imageUrls.add('assets/images/product.png');
       }
 
       if (imageUrls.isEmpty) {

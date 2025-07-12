@@ -1,13 +1,16 @@
+import 'package:e_commerce/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:e_commerce/core/services/cart_provider.dart' as cart_service;
 import 'package:e_commerce/core/services/auth_provider.dart';
-import 'package:e_commerce/core/services/firebase_service.dart';
 import 'package:e_commerce/core/utils/constants.dart';
 import 'package:e_commerce/data/models/order.dart' as app_order;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:e_commerce/core/services/order_provider.dart' as order_provider;
+import 'package:url_launcher/url_launcher.dart';
+import 'package:e_commerce/l10n/app_localizations.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 enum PaymentMethod { cash, momo }
 
@@ -22,6 +25,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final TextEditingController locationController = TextEditingController();
   final MapController mapController = MapController();
   bool _isProcessingOrder = false;
+  bool _isOnline = true;
 
   // Sample delivery person data
   final Map<String, String> deliveryPerson = {
@@ -43,10 +47,42 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool showPaymentOptions = false;
 
   @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+    // Listen to connectivity changes
+    Connectivity()
+        .onConnectivityChanged
+        .listen((List<ConnectivityResult> results) {
+      setState(() {
+        _isOnline =
+            results.isNotEmpty && !results.contains(ConnectivityResult.none);
+      });
+    });
+  }
+
+  Future<void> _checkConnectivity() async {
+    var connectivityResults = await Connectivity().checkConnectivity();
+    setState(() {
+      _isOnline = connectivityResults.isNotEmpty &&
+          !connectivityResults.contains(ConnectivityResult.none);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (l10n == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     final screenHeight = MediaQuery.of(context).size.height;
     final cart = Provider.of<cart_service.CartProvider>(context);
-    final authProvider = Provider.of<AuthProvider>(context);
+    Provider.of<AuthProvider>(context);
     final subtotal = cart.totalAmount;
     final deliveryFee = calculateDeliveryFee(subtotal);
     final total = subtotal + deliveryFee;
@@ -62,6 +98,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 SliverToBoxAdapter(
                   child: Column(
                     children: [
+                      // Connectivity indicator
+                      if (!_isOnline)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 16),
+                          color: Colors.orange.shade100,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.wifi_off,
+                                color: Colors.orange.shade700,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'No internet connection. Please connect to complete payment.',
+                                style: TextStyle(
+                                  color: Colors.orange.shade700,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       // Map section with location input
                       Container(
                         height: screenHeight * 0.35,
@@ -142,10 +204,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                           Expanded(
                                             child: TextField(
                                               controller: locationController,
-                                              decoration: const InputDecoration(
-                                                hintText: 'Enter your location',
+                                              decoration: InputDecoration(
+                                                hintText: l10n.location,
                                                 border: InputBorder.none,
-                                                hintStyle: TextStyle(
+                                                hintStyle: const TextStyle(
                                                     color: Colors.grey),
                                               ),
                                             ),
@@ -161,17 +223,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       color: AppConstants.primaryColor,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Row(
+                                    child: Row(
                                       children: [
                                         Text(
-                                          'Pick',
-                                          style: TextStyle(
+                                          l10n.checkout,
+                                          style: const TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                        SizedBox(width: 4),
-                                        Icon(Icons.location_on,
+                                        const SizedBox(width: 4),
+                                        const Icon(Icons.location_on,
                                             color: Colors.white, size: 20),
                                       ],
                                     ),
@@ -451,7 +513,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       child: ElevatedButton(
                         onPressed: _isProcessingOrder
                             ? null
-                            : () {
+                            : () async {
+                                // Check internet connectivity before proceeding
+                                var connectivityResults =
+                                    await Connectivity().checkConnectivity();
+                                if (connectivityResults.isEmpty ||
+                                    connectivityResults
+                                        .contains(ConnectivityResult.none)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'No internet connection. Please connect to the internet to complete your payment.'),
+                                      backgroundColor: Colors.orange,
+                                      duration: Duration(seconds: 4),
+                                    ),
+                                  );
+                                  return;
+                                }
+
                                 if (!showPaymentOptions) {
                                   setState(() {
                                     showPaymentOptions = true;
@@ -518,8 +597,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return 'Place Order';
       case PaymentMethod.momo:
         return 'Pay with MoMo';
-      default:
-        return 'Pay Now';
     }
   }
 
@@ -626,9 +703,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        // Check internet connectivity before proceeding
+                        var connectivityResults =
+                            await Connectivity().checkConnectivity();
+                        if (connectivityResults.isEmpty ||
+                            connectivityResults
+                                .contains(ConnectivityResult.none)) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'No internet connection. Please connect to the internet to complete your payment.'),
+                              backgroundColor: Colors.orange,
+                              duration: Duration(seconds: 4),
+                            ),
+                          );
+                          return;
+                        }
+
                         Navigator.pop(context);
-                        _processOrder();
+                        _processOrder(isPhone: true);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppConstants.primaryColor,
@@ -656,12 +751,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Future<void> _processOrder() async {
+  Future<void> _processOrder({bool isPhone = false}) async {
     setState(() {
       _isProcessingOrder = true;
     });
 
     try {
+      // Check internet connectivity first
+      var connectivityResults = await Connectivity().checkConnectivity();
+      if (connectivityResults.isEmpty ||
+          connectivityResults.contains(ConnectivityResult.none)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'No internet connection. Please connect to the internet to complete your payment.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+
       final cart =
           Provider.of<cart_service.CartProvider>(context, listen: false);
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -716,12 +826,52 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       print('Order created, saving to Firebase...');
 
-      // Save order to Firebase
+      // Save order to Firebase with stock validation
+      final orderProvider =
+          Provider.of<order_provider.OrderProvider>(context, listen: false);
+      final success = await orderProvider.placeOrder(order);
+
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Some items in your cart are out of stock. Please update your cart and try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Clear cart only after successful order placement
       await Provider.of<cart_service.CartProvider>(context, listen: false)
           .clearCart();
-      await Provider.of<order_provider.OrderProvider>(context, listen: false)
-          .placeOrder(order);
       // Show success modal based on payment method
+      final email = authProvider.firebaseUser?.email;
+      final dInfo = {
+        'orderDetails': {
+          'customerName': email,
+          'items': order.items
+              .map((item) => {
+                    'name': item.product.name,
+                    'quantity': item.quantity,
+                    'price': item.product.price,
+                  })
+              .toList(),
+          'orderDate': order.createdAt?.toIso8601String(),
+          'totalAmount': order.totalAmount,
+        },
+        'email': email,
+      };
+      await sendConfirmEmail(dInfo);
+      if (isPhone) {
+        final url = Uri(
+          scheme: 'tel',
+          path: '*182*1*1*0783536378*${order.totalAmount.toStringAsFixed(2)}#',
+        );
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url);
+        }
+      }
       _showSuccessModal(_selectedPayment);
     } catch (e) {
       print('Error processing order: $e');

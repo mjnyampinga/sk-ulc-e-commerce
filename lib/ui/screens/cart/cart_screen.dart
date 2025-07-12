@@ -6,6 +6,8 @@ import 'package:e_commerce/core/services/product_provider.dart';
 import 'package:e_commerce/core/utils/constants.dart';
 import '../auth/login_screen.dart';
 import '../../widgets/product_card.dart';
+import 'package:e_commerce/l10n/app_localizations.dart';
+import 'checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({Key? key}) : super(key: key);
@@ -70,6 +72,16 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (l10n == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -92,19 +104,20 @@ class _CartScreenState extends State<CartScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
                     children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade200),
+                      if (Navigator.canPop(context))
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Image.asset('assets/icons/back-5.png',
+                                width: 20, height: 20),
                           ),
-                          child: Image.asset('assets/icons/back-5.png',
-                              width: 20, height: 20),
                         ),
-                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Container(
@@ -153,9 +166,9 @@ class _CartScreenState extends State<CartScreen> {
                         Expanded(
                           child: Column(
                             children: [
-                              const Text(
-                                'Cart items',
-                                style: TextStyle(
+                              Text(
+                                l10n.cart,
+                                style: const TextStyle(
                                   color: AppConstants.primaryColor,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -172,7 +185,7 @@ class _CartScreenState extends State<CartScreen> {
                           child: Column(
                             children: [
                               Text(
-                                'Delivery',
+                                l10n.checkout,
                                 style: TextStyle(
                                   color: Colors.grey.shade400,
                                   fontWeight: FontWeight.bold,
@@ -224,53 +237,60 @@ class _CartScreenState extends State<CartScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Total (without tax)',
-                                  style: TextStyle(
-                                    color: Colors.grey.withAlpha(1000),
-                                    fontSize: 12,
+                        SizedBox(
+                          width: double.infinity,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Total (without tax)',
+                                    style: TextStyle(
+                                      color: Colors.grey.withAlpha(1000),
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  'RWF ${total.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red),
-                                ),
-                              ],
-                            ),
-                            SizedBox(
-                              height: 48,
-                              width: 230,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pushNamed(context, '/checkout');
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppConstants.primaryColor,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                  Text(
+                                    'RWF ${total.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red),
                                   ),
-                                  elevation: 0,
-                                ),
-                                child: const Text(
-                                  'Checkout',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                ],
+                              ),
+                              const SizedBox(width: 30),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/checkout');
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          AppConstants.primaryColor,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: const Text(
+                                      'Checkout',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -497,16 +517,29 @@ class _CartScreenState extends State<CartScreen> {
                             ),
                             quantity == 0
                                 ? GestureDetector(
-                                    onTap: () {
-                                      cart.addToCart(product);
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                              '${product.name} added to cart'),
-                                          duration: const Duration(seconds: 1),
-                                        ),
-                                      );
+                                    onTap: () async {
+                                      final success =
+                                          await cart.addToCart(product);
+                                      if (success) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                '${product.name} added to cart'),
+                                            duration:
+                                                const Duration(seconds: 1),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                'Cannot add more than ${product.quantity ?? 0} items'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
                                     },
                                     child: Container(
                                       padding: const EdgeInsets.all(8),
@@ -556,8 +589,21 @@ class _CartScreenState extends State<CartScreen> {
                                           ),
                                         ),
                                         GestureDetector(
-                                          onTap: () => cart.updateQuantity(
-                                              product.id, quantity + 1),
+                                          onTap: () async {
+                                            final success =
+                                                await cart.updateQuantity(
+                                                    product.id, quantity + 1);
+                                            if (!success) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                      'Cannot add more than ${product.quantity ?? 0} items'),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
+                                          },
                                           child: const Icon(
                                             Icons.add,
                                             color: Colors.white,
@@ -685,10 +731,22 @@ class _CartScreenState extends State<CartScreen> {
                                   ),
                                 ),
                                 GestureDetector(
-                                  onTap: () => cart.updateQuantity(
-                                    item.product.id,
-                                    item.quantity + 1,
-                                  ),
+                                  onTap: () async {
+                                    final success = await cart.updateQuantity(
+                                      item.product.id,
+                                      item.quantity + 1,
+                                    );
+                                    if (!success) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              'Cannot add more than ${item.product.quantity ?? 0} items'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  },
                                   child: const Icon(
                                     Icons.add,
                                     color: Colors.white,

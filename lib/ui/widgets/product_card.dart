@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/utils/constants.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:e_commerce/l10n/app_localizations.dart';
 
 Widget buildProductImage(String imageUrl,
     {double width = 100, double height = 100}) {
@@ -43,18 +44,32 @@ class ProductCard extends StatelessWidget {
   final String imageUrl;
   final String name;
   final String price;
+  final int? stockQuantity;
   final VoidCallback onAddToCart;
+  final bool canAddToCart;
 
   const ProductCard({
     Key? key,
     required this.imageUrl,
     required this.name,
     required this.price,
+    this.stockQuantity,
     required this.onAddToCart,
+    this.canAddToCart = true,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (l10n == null) {
+      return const Card(
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
       elevation: 2,
@@ -82,18 +97,35 @@ class ProductCard extends StatelessWidget {
                 fontSize: 14,
               ),
             ),
+            if (stockQuantity != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                '${l10n.stockRemaining} $stockQuantity',
+                style: TextStyle(
+                  color: stockQuantity! > 0 ? Colors.green : Colors.red,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
             const Spacer(),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppConstants.primaryColor,
+                  backgroundColor:
+                      canAddToCart ? AppConstants.primaryColor : Colors.grey,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                 ),
-                onPressed: onAddToCart,
-                child: const Text('Add to Cart'),
+                onPressed: canAddToCart ? onAddToCart : null,
+                child: Text(
+                  stockQuantity == 0 ? l10n.outOfStock : l10n.addToCart,
+                  style: TextStyle(
+                    color: canAddToCart ? Colors.white : Colors.grey.shade600,
+                  ),
+                ),
               ),
             ),
           ],

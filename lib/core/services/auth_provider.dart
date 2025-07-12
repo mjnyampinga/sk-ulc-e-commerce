@@ -116,6 +116,8 @@ class AuthProvider extends ChangeNotifier {
         password: password,
       );
 
+      print('AuthProvider: signIn result: $result');
+
       if (result != null) {
         _firebaseUser = result.user;
         await _loadUserProfile(result.user!.uid);
@@ -123,6 +125,73 @@ class AuthProvider extends ChangeNotifier {
         return true;
       } else {
         _setError('Failed to sign in');
+        _setLoading(false);
+        return false;
+      }
+    } catch (e) {
+      print('AuthProvider: signIn error: $e');
+      _setError(_getErrorMessage(e));
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> signInWithPhone({
+    required String phoneNumber,
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+
+      UserCredential? result =
+          await FirebaseService.signInWithPhoneCredential(credential);
+
+      if (result != null) {
+        _firebaseUser = result.user;
+        await _loadUserProfile(result.user!.uid);
+        _setLoading(false);
+        return true;
+      } else {
+        _setError('Failed to sign in with phone');
+        _setLoading(false);
+        return false;
+      }
+    } catch (e) {
+      _setError(_getErrorMessage(e));
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> signUpWithPhone({
+    required String phoneNumber,
+    required String username,
+    required String userType,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      UserCredential? result = await FirebaseService.signUpWithPhone(
+        phoneNumber: phoneNumber,
+        username: username,
+        userType: userType,
+      );
+
+      if (result != null) {
+        _firebaseUser = result.user;
+        await _loadUserProfile(result.user!.uid);
+        _setLoading(false);
+        return true;
+      } else {
+        _setError('Failed to create account with phone');
         _setLoading(false);
         return false;
       }
@@ -168,6 +237,11 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void _clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  void clearError() {
     _error = null;
     notifyListeners();
   }

@@ -15,6 +15,7 @@ import 'manage_banners_screen.dart';
 import '../../widgets/product_card.dart';
 import 'package:e_commerce/core/services/firebase_service.dart';
 import 'manage_categories_screen.dart';
+import 'supplier_order_history_screen.dart';
 
 class SupplierDashboardScreen extends StatefulWidget {
   const SupplierDashboardScreen({Key? key}) : super(key: key);
@@ -188,32 +189,7 @@ class _SupplierDashboardScreenState extends State<SupplierDashboardScreen> {
   }
 
   Widget _buildOrdersContent() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final supplierId = authProvider.firebaseUser?.uid ?? '';
-
-    return StreamBuilder<List<app_order.Order>>(
-      stream: FirebaseService.streamOrdersForSupplier(supplierId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text("Error: \\${snapshot.error}"));
-        }
-        final orders = snapshot.data ?? [];
-        if (orders.isEmpty) {
-          return const Center(child: Text("You have no orders yet."));
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: orders.length,
-          itemBuilder: (context, index) {
-            final order = orders[index];
-            return _buildOrderCard(order);
-          },
-        );
-      },
-    );
+    return const SupplierOrderHistoryScreen();
   }
 
   Widget _buildOrderCard(app_order.Order order) {
@@ -610,6 +586,25 @@ class _SupplierDashboardScreenState extends State<SupplierDashboardScreen> {
                   ),
                 ),
               ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: product.isApproved == true
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                product.isApproved == true ? 'Approved' : 'Pending Approval',
+                style: TextStyle(
+                  color:
+                      product.isApproved == true ? Colors.green : Colors.orange,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ],
         ),
         trailing: PopupMenuButton<String>(

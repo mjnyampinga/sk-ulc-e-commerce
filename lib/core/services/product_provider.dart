@@ -34,7 +34,8 @@ class ProductProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      _products = await ProductService.getAllProducts();
+      // Load only approved products for customers
+      _products = await ProductService.getApprovedProducts();
       _setLoading(false);
     } catch (e) {
       _setError('Failed to load products: $e');
@@ -173,6 +174,76 @@ class ProductProvider extends ChangeNotifier {
       return _products.firstWhere((product) => product.id == productId);
     } catch (e) {
       return null;
+    }
+  }
+
+  // Admin methods for product approval
+  Future<void> loadPendingApprovalProducts() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      _products = await ProductService.getPendingApprovalProducts();
+      _setLoading(false);
+    } catch (e) {
+      _setError('Failed to load pending approval products: $e');
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> approveProduct(String productId, String approvedBy) async {
+    try {
+      bool success = await ProductService.approveProduct(productId, approvedBy);
+      if (success) {
+        await loadPendingApprovalProducts(); // Reload pending products
+      }
+      return success;
+    } catch (e) {
+      _setError('Failed to approve product: $e');
+      return false;
+    }
+  }
+
+  Future<bool> rejectProduct(
+      String productId, String rejectedBy, String reason) async {
+    try {
+      bool success =
+          await ProductService.rejectProduct(productId, rejectedBy, reason);
+      if (success) {
+        await loadPendingApprovalProducts(); // Reload pending products
+      }
+      return success;
+    } catch (e) {
+      _setError('Failed to reject product: $e');
+      return false;
+    }
+  }
+
+  // Load approved products (for admin review)
+  Future<void> loadApprovedProducts() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      _products = await ProductService.getApprovedProducts();
+      _setLoading(false);
+    } catch (e) {
+      _setError('Failed to load approved products: $e');
+      _setLoading(false);
+    }
+  }
+
+  // Move approved product back to pending
+  Future<bool> moveToPending(String productId) async {
+    try {
+      bool success = await ProductService.moveToPending(productId);
+      if (success) {
+        await loadApprovedProducts(); // Reload approved products
+      }
+      return success;
+    } catch (e) {
+      _setError('Failed to move product to pending: $e');
+      return false;
     }
   }
 }

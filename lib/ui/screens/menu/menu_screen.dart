@@ -2,16 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:e_commerce/core/services/auth_provider.dart';
 import 'package:e_commerce/core/services/notification_provider.dart';
+import 'package:e_commerce/core/services/language_provider.dart';
 import 'package:e_commerce/core/utils/constants.dart';
 import '../auth/login_screen.dart';
 import 'learn_more_screen.dart';
 import 'notification_screen.dart';
+import 'language_settings_screen.dart';
+import 'order_history_screen.dart';
+import 'package:e_commerce/l10n/app_localizations.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (l10n == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -103,20 +117,20 @@ class MenuScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Not logged in',
-                                    style: TextStyle(
+                                    l10n.notLoggedIn,
+                                    style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   Text(
-                                    'Please login to access your profile',
-                                    style: TextStyle(
+                                    l10n.pleaseLogin,
+                                    style: const TextStyle(
                                       color: Colors.grey,
                                       fontSize: 14,
                                     ),
@@ -139,9 +153,9 @@ class MenuScreen extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              child: const Text(
-                                'Login',
-                                style: TextStyle(color: Colors.white),
+                              child: Text(
+                                l10n.login,
+                                style: const TextStyle(color: Colors.white),
                               ),
                             ),
                           ],
@@ -226,9 +240,9 @@ class MenuScreen extends StatelessWidget {
                                         children: [
                                           Row(
                                             children: [
-                                              const Text(
-                                                'Notifications',
-                                                style: TextStyle(
+                                              Text(
+                                                l10n.notifications,
+                                                style: const TextStyle(
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -265,8 +279,8 @@ class MenuScreen extends StatelessWidget {
                                           ),
                                           Text(
                                             unreadCount > 0
-                                                ? '$unreadCount unread notification${unreadCount > 1 ? 's' : ''}'
-                                                : 'No new notifications',
+                                                ? '$unreadCount ${unreadCount > 1 ? l10n.unreadNotificationsPlural : l10n.unreadNotifications}'
+                                                : l10n.noNewNotifications,
                                             style: const TextStyle(
                                               color: Colors.grey,
                                               fontSize: 14,
@@ -292,12 +306,146 @@ class MenuScreen extends StatelessWidget {
                   },
                 ),
 
-                const Row(
+                // Order History Section (only for authenticated users)
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    if (authProvider.isAuthenticated) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 24),
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const OrderHistoryScreen(),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F9FF),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.shopping_bag,
+                                  color: AppConstants.primaryColor,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.orderHistory,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        'View your order history',
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  color: Colors.grey,
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+
+                // Language Settings Section
+                Container(
+                  margin: const EdgeInsets.only(bottom: 24),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LanguageSettingsScreen(),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F9FF),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.language,
+                            color: AppConstants.primaryColor,
+                            size: 28,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.language,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Consumer<LanguageProvider>(
+                                  builder: (context, languageProvider, child) {
+                                    return Text(
+                                      languageProvider.getLanguageName(
+                                        languageProvider
+                                            .currentLocale.languageCode,
+                                      ),
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 14,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.grey,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                Row(
                   children: [
-                    Icon(Icons.lightbulb, color: Colors.amber, size: 28),
-                    SizedBox(width: 8),
-                    Text('Business Tips',
-                        style: TextStyle(
+                    const Icon(Icons.lightbulb, color: Colors.amber, size: 28),
+                    const SizedBox(width: 8),
+                    Text(l10n.businessTips,
+                        style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF2A7A92))),
@@ -310,17 +458,17 @@ class MenuScreen extends StatelessWidget {
                     scrollDirection: Axis.horizontal,
                     children: [
                       _tipCard('assets/images/tip1.png',
-                          'Start Small, Scale Smart', 'by Christopher D.'),
-                      _tipCard('assets/images/tip2.png', 'Embrace Technology',
-                          'by Katalina C.'),
-                      _tipCard('assets/images/tip3.png', 'Atlassian Playbook',
-                          'by Florian M.'),
+                          l10n.startSmallScaleSmart, l10n.byChristopher),
+                      _tipCard('assets/images/tip2.png', l10n.embraceTechnology,
+                          l10n.byKatalina),
+                      _tipCard('assets/images/tip3.png', l10n.atlassianPlaybook,
+                          l10n.byFlorian),
                     ],
                   ),
                 ),
                 const SizedBox(height: 32),
-                const Text('Personal statistics',
-                    style: TextStyle(
+                Text(l10n.personalStatistics,
+                    style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2A7A92))),
@@ -341,16 +489,19 @@ class MenuScreen extends StatelessWidget {
                                     color: Color(0xFFF5F9FF),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
-                                  child: const Column(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text('11',
+                                      const Text('11',
                                           style: TextStyle(
                                               fontSize: 36,
                                               fontWeight: FontWeight.bold)),
-                                      SizedBox(height: 8),
-                                      Text('Tips\ncompleted',
+                                      const SizedBox(height: 8),
+                                      Text(l10n.tipsCompleted,
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(fontSize: 16)),
+                                          style: const TextStyle(fontSize: 16),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis),
                                     ],
                                   ),
                                 ),
@@ -375,6 +526,8 @@ class MenuScreen extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Text(unreadCount.toString(),
                                             style: const TextStyle(
@@ -383,7 +536,10 @@ class MenuScreen extends StatelessWidget {
                                         const SizedBox(height: 8),
                                         const Text('Unread\nnotifications',
                                             textAlign: TextAlign.center,
-                                            style: TextStyle(fontSize: 16)),
+                                            style:
+                                                const TextStyle(fontSize: 16),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis),
                                       ],
                                     ),
                                   ),
@@ -403,16 +559,19 @@ class MenuScreen extends StatelessWidget {
                               color: Color(0xFFF5F9FF),
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: const Column(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text('11',
+                                const Text('11',
                                     style: TextStyle(
                                         fontSize: 36,
                                         fontWeight: FontWeight.bold)),
-                                SizedBox(height: 8),
-                                Text('Tips\ncompleted',
+                                const SizedBox(height: 8),
+                                const Text('Tips\ncompleted',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(fontSize: 16)),
+                                    style: TextStyle(fontSize: 16),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis),
                               ],
                             ),
                           ),
@@ -425,16 +584,19 @@ class MenuScreen extends StatelessWidget {
                               color: Color(0xFFF5F9FF),
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: const Column(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text('3',
+                                const Text('3',
                                     style: TextStyle(
                                         fontSize: 36,
                                         fontWeight: FontWeight.bold)),
-                                SizedBox(height: 8),
-                                Text('Tips\nin progress',
+                                const SizedBox(height: 8),
+                                Text(l10n.tipsInProgress,
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(fontSize: 16)),
+                                    style: const TextStyle(fontSize: 16),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis),
                               ],
                             ),
                           ),
@@ -444,8 +606,8 @@ class MenuScreen extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 32),
-                const Text('Learn more way faster',
-                    style: TextStyle(
+                Text(l10n.learnMoreWayFaster,
+                    style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2A7A92))),
@@ -469,8 +631,8 @@ class MenuScreen extends StatelessWidget {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text('Lean more',
-                        style: TextStyle(
+                    child: Text(l10n.leanMore,
+                        style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.white)),
@@ -488,6 +650,7 @@ class MenuScreen extends StatelessWidget {
   Widget _tipCard(String image, String title, String author) {
     return Container(
       width: 160,
+      height: 160,
       margin: const EdgeInsets.only(right: 16),
       decoration: BoxDecoration(
         color: const Color(0xFFF5F9FF),
@@ -502,14 +665,28 @@ class MenuScreen extends StatelessWidget {
                 Image.asset(image, height: 90, width: 160, fit: BoxFit.cover),
           ),
           const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Text(title,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Text(author, style: const TextStyle(color: Colors.grey)),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    author,
+                    style: const TextStyle(color: Colors.grey),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

@@ -6,10 +6,12 @@ import 'package:e_commerce/core/services/product_provider.dart';
 import 'package:e_commerce/core/services/navigation_provider.dart';
 import '../../../core/services/product_service.dart';
 import '../../widgets/product_card.dart';
+import '../../widgets/online_offline_indicator.dart';
 import '../categories/product_detail_screen.dart';
 import 'dart:async';
 import 'package:e_commerce/core/services/category_service.dart';
 import 'package:e_commerce/data/models/category.dart';
+import 'package:e_commerce/l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -101,6 +103,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (l10n == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     final double cardSize = 210;
     final double screenWidth = MediaQuery.of(context).size.width;
     final double viewportFraction = cardSize / screenWidth;
@@ -137,15 +148,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                       Border.all(color: Colors.grey.shade300),
                                   borderRadius: BorderRadius.circular(25),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   children: [
-                                    Icon(Icons.location_on,
+                                    const Icon(Icons.location_on,
                                         color: Color(0xFF2A7A92)),
-                                    SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Kigali, kg 34 st...',
-                                        style: TextStyle(fontSize: 16),
+                                        l10n.location,
+                                        style: const TextStyle(fontSize: 16),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
@@ -168,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const SizedBox(width: 4),
                                   Consumer<cart_service.CartProvider>(
                                     builder: (context, cart, child) => Text(
-                                      'RWF${cart.totalAmount.toStringAsFixed(0)}',
+                                      '${l10n.cartTotal}${cart.totalAmount.toStringAsFixed(0)}',
                                       style: const TextStyle(
                                           fontWeight: FontWeight.bold),
                                     ),
@@ -177,6 +188,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            // Online/Offline Indicator
+                            const OnlineOfflineIndicator(),
                             const SizedBox(width: 8),
                             GestureDetector(
                               onTap: () {
@@ -216,10 +230,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               Expanded(
                                 child: TextField(
                                   controller: _searchController,
-                                  decoration: const InputDecoration(
-                                    hintText: 'What are u looking for ?',
+                                  decoration: InputDecoration(
+                                    hintText: l10n.searchHint,
                                     border: InputBorder.none,
-                                    hintStyle: TextStyle(color: Colors.grey),
+                                    hintStyle:
+                                        const TextStyle(color: Colors.grey),
                                   ),
                                   onChanged: _onSearchChanged,
                                 ),
@@ -250,11 +265,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                             children: [
                               _buildBannerCard(
-                                  'Shop now', 'Pay Later !', 'OCTOBER7'),
+                                  l10n.shopNow, l10n.payLater, 'OCTOBER7'),
                               _buildBannerCard(
-                                  'Big Sale', 'Up to 70% Off', 'SALE2024'),
-                              _buildBannerCard(
-                                  'New Arrivals', 'Fresh & Trendy', 'NEW2024'),
+                                  l10n.bigSale, l10n.upTo70Off, 'SALE2024'),
+                              _buildBannerCard(l10n.newArrivals,
+                                  l10n.freshTrendy, 'NEW2024'),
                             ],
                           ),
                         ),
@@ -276,8 +291,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Row(
                           children: [
-                            const Text('Categories',
-                                style: TextStyle(
+                            Text(l10n.categories,
+                                style: const TextStyle(
                                     fontSize: 20, fontWeight: FontWeight.bold)),
                             const SizedBox(width: 8),
                             Image.asset('assets/icons/emoji.png', width: 24),
@@ -288,10 +303,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               final navigationProvider =
                                   Provider.of<NavigationProvider>(context,
                                       listen: false);
-                              navigationProvider
-                                  .setIndex(1); // Switch to categories tab
+                              navigationProvider.setIndex(
+                                  1, context); // Switch to categories tab
                             },
-                            child: const Text('See all')),
+                            child: Text(l10n.seeAll)),
                       ],
                     ),
                   ),
@@ -310,8 +325,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const SizedBox(height: 16),
                                 Text(
                                   _isSearching
-                                      ? 'Searching...'
-                                      : 'Loading products...',
+                                      ? l10n.searching
+                                      : l10n.loadingProducts,
                                   style: const TextStyle(
                                     color: Colors.grey,
                                     fontSize: 16,
@@ -334,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     size: 48, color: Colors.red),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Error loading products: ${productProvider.error}',
+                                  '${l10n.errorLoadingProducts} ${productProvider.error}',
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(color: Colors.red),
                                 ),
@@ -348,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       productProvider.loadProducts();
                                     }
                                   },
-                                  child: const Text('Retry'),
+                                  child: Text(l10n.retry),
                                 ),
                               ],
                             ),
@@ -375,8 +390,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const SizedBox(height: 16),
                                 Text(
                                   _isSearching
-                                      ? 'No products found for "$_searchQuery"'
-                                      : 'No products available',
+                                      ? '${l10n.noProductsFound} "$_searchQuery"'
+                                      : l10n.noProductsAvailable,
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     color: Colors.grey,
@@ -385,10 +400,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 if (_isSearching) ...[
                                   const SizedBox(height: 8),
-                                  const Text(
-                                    'Try different keywords or check spelling',
+                                  Text(
+                                    l10n.tryDifferentKeywords,
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.grey,
                                       fontSize: 14,
                                     ),
@@ -405,18 +420,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                           await productProvider.loadProducts();
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
-                                            const SnackBar(
+                                            SnackBar(
                                               content: Text(
-                                                  'Sample products added successfully!'),
+                                                  l10n.sampleProductsAdded),
                                               backgroundColor: Colors.green,
                                             ),
                                           );
                                         } else {
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                  'Some products failed to add. Check console for details.'),
+                                            SnackBar(
+                                              content:
+                                                  Text(l10n.someProductsFailed),
                                               backgroundColor: Colors.orange,
                                             ),
                                           );
@@ -431,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         );
                                       }
                                     },
-                                    child: const Text('Add Sample Products'),
+                                    child: Text(l10n.addSampleProducts),
                                   ),
                                 ],
                               ],
@@ -454,7 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Search results for "$_searchQuery" (${products.length} found)',
+                                      '${l10n.searchResultsFor} "$_searchQuery" (${products.length} ${l10n.found})',
                                       style: const TextStyle(
                                         color: Color(0xFF2A7A92),
                                         fontSize: 14,
@@ -542,9 +557,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                                               BorderRadius
                                                                   .circular(8),
                                                         ),
-                                                        child: const Text(
-                                                            '52% Off',
-                                                            style: TextStyle(
+                                                        child: Text(
+                                                            l10n.percentOff,
+                                                            style: const TextStyle(
                                                                 color:
                                                                     Colors.blue,
                                                                 fontWeight:
@@ -624,16 +639,46 @@ class _HomeScreenState extends State<HomeScreen> {
                                                             ],
                                                           ),
                                                           GestureDetector(
-                                                            onTap: () {
+                                                            onTap: () async {
                                                               if (quantity >
                                                                   0) {
-                                                                cart.updateQuantity(
-                                                                    product.id,
-                                                                    quantity +
-                                                                        1);
+                                                                final success =
+                                                                    await cart.updateQuantity(
+                                                                        product
+                                                                            .id,
+                                                                        quantity +
+                                                                            1);
+                                                                if (!success) {
+                                                                  ScaffoldMessenger.of(
+                                                                          context)
+                                                                      .showSnackBar(
+                                                                    SnackBar(
+                                                                      content: Text(
+                                                                          '${l10n.cannotAddMoreThan} ${product.quantity ?? 0} ${l10n.items}'),
+                                                                      backgroundColor:
+                                                                          Colors
+                                                                              .red,
+                                                                    ),
+                                                                  );
+                                                                }
                                                               } else {
-                                                                cart.addToCart(
-                                                                    product);
+                                                                final success =
+                                                                    await cart
+                                                                        .addToCart(
+                                                                            product);
+                                                                if (!success) {
+                                                                  ScaffoldMessenger.of(
+                                                                          context)
+                                                                      .showSnackBar(
+                                                                    SnackBar(
+                                                                      content: Text(
+                                                                          '${l10n.cannotAddMoreThan} ${product.quantity ?? 0} ${l10n.items}'),
+                                                                      backgroundColor:
+                                                                          Colors
+                                                                              .red,
+                                                                    ),
+                                                                  );
+                                                                }
                                                               }
                                                             },
                                                             child: Container(
@@ -737,8 +782,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Row(
                           children: [
-                            const Text('Popular Products',
-                                style: TextStyle(
+                            Text(l10n.popularProducts,
+                                style: const TextStyle(
                                     fontSize: 20, fontWeight: FontWeight.bold)),
                             const SizedBox(width: 8),
                             Image.asset('assets/icons/celebrate.png',
@@ -751,7 +796,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               showAllPopular = !showAllPopular;
                             });
                           },
-                          child: Text(showAllPopular ? 'Show Less' : 'See All'),
+                          child: Text(showAllPopular
+                              ? l10n.showLess
+                              : l10n.seeAllProducts),
                         ),
                       ],
                     ),
@@ -830,9 +877,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                           .getQuantity(featuredProducts[0].id);
                                       return quantity == 0
                                           ? GestureDetector(
-                                              onTap: () {
-                                                cart.addToCart(
-                                                    featuredProducts[0]);
+                                              onTap: () async {
+                                                final success =
+                                                    await cart.addToCart(
+                                                        featuredProducts[0]);
+                                                if (!success) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                          'Cannot add more than ${featuredProducts[0].quantity ?? 0} items'),
+                                                      backgroundColor:
+                                                          Colors.red,
+                                                    ),
+                                                  );
+                                                }
                                               },
                                               child: Container(
                                                 margin: const EdgeInsets.only(
@@ -894,11 +953,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     ),
                                                   ),
                                                   GestureDetector(
-                                                    onTap: () {
-                                                      cart.updateQuantity(
-                                                          featuredProducts[0]
-                                                              .id,
-                                                          quantity + 1);
+                                                    onTap: () async {
+                                                      final success = await cart
+                                                          .updateQuantity(
+                                                              featuredProducts[
+                                                                      0]
+                                                                  .id,
+                                                              quantity + 1);
+                                                      if (!success) {
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                                'Cannot add more than ${featuredProducts[0].quantity ?? 0} items'),
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                          ),
+                                                        );
+                                                      }
                                                     },
                                                     child: Container(
                                                       padding:
@@ -988,11 +1061,30 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 overflow: TextOverflow.ellipsis,
                                                 maxLines: 1,
                                               ),
-                                              Text(
-                                                  'RWF${product.price.toStringAsFixed(2)}',
-                                                  style: const TextStyle(
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                      'RWF${product.price.toStringAsFixed(2)}',
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                  const Spacer(),
+                                                  Text(
+                                                    'Stock: ${product.quantity ?? 0}',
+                                                    style: TextStyle(
+                                                      color:
+                                                          (product.quantity ??
+                                                                      0) >
+                                                                  0
+                                                              ? Colors.green
+                                                              : Colors.red,
+                                                      fontSize: 12,
                                                       fontWeight:
-                                                          FontWeight.bold)),
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -1002,8 +1094,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 cart.getQuantity(product.id);
                                             return quantity == 0
                                                 ? GestureDetector(
-                                                    onTap: () {
-                                                      cart.addToCart(product);
+                                                    onTap: () async {
+                                                      final success = await cart
+                                                          .addToCart(product);
+                                                      if (!success) {
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                                'Cannot add more than ${product.quantity ?? 0} items'),
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                          ),
+                                                        );
+                                                      }
                                                     },
                                                     child: Container(
                                                       margin:
@@ -1077,10 +1182,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                                           ),
                                                         ),
                                                         GestureDetector(
-                                                          onTap: () {
-                                                            cart.updateQuantity(
-                                                                product.id,
-                                                                quantity + 1);
+                                                          onTap: () async {
+                                                            final success = await cart
+                                                                .updateQuantity(
+                                                                    product.id,
+                                                                    quantity +
+                                                                        1);
+                                                            if (!success) {
+                                                              ScaffoldMessenger
+                                                                      .of(context)
+                                                                  .showSnackBar(
+                                                                SnackBar(
+                                                                  content: Text(
+                                                                      'Cannot add more than ${product.quantity ?? 0} items'),
+                                                                  backgroundColor:
+                                                                      Colors
+                                                                          .red,
+                                                                ),
+                                                              );
+                                                            }
                                                           },
                                                           child: Container(
                                                             padding:

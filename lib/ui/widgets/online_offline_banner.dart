@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:e_commerce/l10n/app_localizations.dart';
 import 'dart:async';
 
 class OnlineOfflineBanner extends StatefulWidget {
@@ -60,6 +61,12 @@ class _OnlineOfflineBannerState extends State<OnlineOfflineBanner> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (l10n == null) {
+      return const SizedBox.shrink();
+    }
+
     if (!_showBanner) {
       return const SizedBox.shrink();
     }
@@ -67,15 +74,36 @@ class _OnlineOfflineBannerState extends State<OnlineOfflineBanner> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      color: _isOnline ? Colors.green : Colors.red,
-      child: Text(
-        _isOnline ? 'You are online now' : 'You are offline',
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w500,
-        ),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: _isOnline ? Colors.green : Colors.red,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            _isOnline ? Icons.wifi : Icons.wifi_off,
+            color: Colors.white,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _isOnline ? l10n.youAreOnline : l10n.youAreOffline,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }

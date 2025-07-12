@@ -364,7 +364,7 @@ class _LearnMoreScreenState extends State<LearnMoreScreen> {
         ),
         onPressed: () async {
           final url = Uri.parse(
-              'https://wa.me/1234567890'); // Replace with your WhatsApp number
+              'https://wa.me/+250783536378'); // Replace with your WhatsApp number
           if (await canLaunchUrl(url)) {
             await launchUrl(url, mode: LaunchMode.externalApplication);
           }
